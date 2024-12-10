@@ -3,12 +3,23 @@ package main
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 func main() {
+	// has New then it is the constructer
+	// best practise to use the constructor than directly instanciating the instance
+	router := chi.NewRouter()
+
+	//logger is used to log the request and chi provides one out of the box
+	router.Use(middleware.Logger)
+	router.Get("/hello", basicHandler)
+
 	server := &http.Server{
 		Addr:    ":3000",
-		Handler: http.HandlerFunc(basicHandler),
+		Handler: router,
 	}
 	err := server.ListenAndServe()
 	if err != nil {
