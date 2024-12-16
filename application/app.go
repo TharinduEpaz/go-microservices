@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -31,10 +32,17 @@ func (a *App) Start(ctx context.Context) error {
 	}
 
 	// connet to the database
-	err := a.rdb.Ping(ctx).Err()
+	rdb := redis.NewClient(&redis.Options{
+        Addr: "54.86.44.104:6379", // Replace with your EC2 public IP address
+        Password: "", // No password set
+        DB: 0,        // use default DB
+    })
+
+    pong, err := rdb.Ping(ctx).Result()
 	if err != nil {
-		return fmt.Errorf("faied to connet to redis: %w", err)
+		log.Fatalf("Could not connect to Redis: %v", err)
 	}
+	fmt.Println(pong)
 
 	// close the database at the end of the start function
 	defer func() {
