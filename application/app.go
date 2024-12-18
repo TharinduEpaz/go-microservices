@@ -3,8 +3,12 @@ package application
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
 	"time"
+
+	"github.com/joho/godotenv"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -30,11 +34,23 @@ func (a *App) Start(ctx context.Context) error {
 		Handler: a.router,
 	}
 
-	// connet to the database
-	err := a.rdb.Ping(ctx).Err()
+	err := godotenv.Load(".env")
 	if err != nil {
-		return fmt.Errorf("faied to connet to redis: %w", err)
+		log.Fatal("Error loading .env file")
 	}
+
+	// connet to the database
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     os.Getenv("AWS_REDIS_ENDPOINT"),
+		Password: os.Getenv("AWS_REDIS_PASSWORD"), // No password set
+		DB:       0,                               // use default DB
+	})
+
+	pong, err := rdb.Ping(ctx).Result()
+	if err != nil {
+		log.Fatalf("could not connect to Redis: %v", err)
+	}
+	fmt.Println(pong, "! connected to redis server on aws 🔥")
 
 	// close the database at the end of the start function
 	defer func() {
@@ -43,7 +59,7 @@ func (a *App) Start(ctx context.Context) error {
 		}
 	}()
 
-	fmt.Println("Starting server")
+	fmt.Println("starting server 🚀")
 
 	ch := make(chan error, 1) // second arguement is the buffer size
 
@@ -51,7 +67,7 @@ func (a *App) Start(ctx context.Context) error {
 	go func() {
 		err = server.ListenAndServe()
 		if err != nil {
-			ch <- fmt.Errorf("failed to start server : %w", err)
+			ch <- fmt.Errorf("failed to start server 😞 : %w", err)
 		}
 		close(ch)
 	}()
@@ -67,7 +83,7 @@ func (a *App) Start(ctx context.Context) error {
 	case <-ctx.Done():
 		timeout, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
-		fmt.Println("Shutting down the server")
+		fmt.Println("Shutting down the server : bye bye 👋")
 		return server.Shutdown(timeout)
 	}
 }
